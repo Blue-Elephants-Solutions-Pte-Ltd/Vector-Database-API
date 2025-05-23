@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  vector-db-api:
+    build:
+      context: ..
+      dockerfile: docker_container/Dockerfile
+    ports:
+      - "2100:2100"
+    volumes:
+      - /var/www/VECTOR_DB:/app/VECTOR_DB
+    environment:
+      - PYTHONUNBUFFERED=1
+
+volumes:
+  vector_db_data:
+    name: vector_db_persistent_data 

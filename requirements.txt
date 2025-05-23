@@ -1,0 +1,14 @@
+flask
+flask-cors
+numpy
+langchain
+langchain-openai
+langchain-mistralai
+langchain-cohere
+langchain-aws
+langchain-chroma
+langchain-text-splitters
+openai
+chromadb
+tenacity
+python-dotenv
