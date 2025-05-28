@@ -31,7 +31,10 @@ sudo chmod 777 /var/www/VECTOR_DB
 docker pull ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
 
 # Run the container in detached mode, mapping port 2100 and mounting the vector storage directory
-docker run -d -p 2100:2100 --name vector-db-api -v /var/www/VECTOR_DB:/app/VECTOR_DB ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
+# docker run -d -p 2100:2100 --name vector-db-api -v /var/www/VECTOR_DB:/app/VECTOR_DB ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
+
+docker run -d -p 2100:2100 --name vector-db-api -e AES_ENC_KEY='your_user_secret_key' -e AES_IV='your_user_secret_iv' -v /var/www/VECTOR_DB:/app/VECTOR_DB ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
+
 ```
 
 ### Container Management
