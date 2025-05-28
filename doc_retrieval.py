@@ -39,6 +39,9 @@ def doc_retriever(query, user_id, document_id_list, score_threshold, k_value, ll
             persist_directory=vectorstore_path
         )
         
+        chunk_count = vectorstore._collection.count()
+        k_value = min(k_value, chunk_count)
+        
         # Create standard retriever
         standard_retriever = create_base_retriever(
             vectorstore=vectorstore,
