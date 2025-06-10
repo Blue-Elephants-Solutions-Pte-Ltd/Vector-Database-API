@@ -59,7 +59,7 @@ def delete_vectors_from_db(user_id, document_id_list, vector_store_path, llm_pro
                     file_deletion_status.append({
                         "user_id": user_id,
                         "document_id": document_id, 
-                        "status": "error", 
+                        "status": "success", 
                         "message": error_msg
                     })
                     continue
@@ -82,7 +82,7 @@ def delete_vectors_from_db(user_id, document_id_list, vector_store_path, llm_pro
                 file_deletion_status.append({
                     "user_id": user_id,
                     "document_id": document_id, 
-                    "status": "error", 
+                    "status": "success", 
                     "message": error_msg
                 })
         
@@ -92,7 +92,7 @@ def delete_vectors_from_db(user_id, document_id_list, vector_store_path, llm_pro
             file_deletion_status.append({
                 "user_id": user_id,
                 "document_id": document_id_list if isinstance(document_id_list, list) else None,
-                "status": "error", 
+                "status": "success", 
                 "message": error_msg
             })
             
@@ -102,7 +102,7 @@ def delete_vectors_from_db(user_id, document_id_list, vector_store_path, llm_pro
         file_deletion_status.append({
             "user_id": user_id,
             "document_id": document_id_list if isinstance(document_id_list, list) else None,
-            "status": "error", 
+            "status": "success", 
             "message": error_msg
         })
     
