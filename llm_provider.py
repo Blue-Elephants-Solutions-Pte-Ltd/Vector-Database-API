@@ -54,7 +54,7 @@ def get_embeddings_model(provider, model_name, api_key):
         return embeddings
     
     except Exception as e:
-        raise (f"Provider {provider} not supported. Error: {str(e)}")
+        raise Exception(f"Provider {provider} not supported. Error: {str(e)}")
     
 
 def get_chat_model(provider, model_name, api_key):
@@ -105,6 +105,6 @@ def get_chat_model(provider, model_name, api_key):
         return llm
         
     except Exception as e:
-        raise (f"Provider {provider} not supported. Error: {str(e)}")
+        raise Exception(f"Provider {provider} not supported. Error: {str(e)}")
 
         
