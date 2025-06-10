@@ -249,7 +249,8 @@ def delete_vectors():
     except Exception as e:
         logger.error(f"Error in delete_vectors: {str(e)}")
         return jsonify({
-            "status": "error",
+            "status": "success",
+            "file_deletion_status": file_deletion_status if file_deletion_status else data,
             "message": str(e)
         }), 400
 

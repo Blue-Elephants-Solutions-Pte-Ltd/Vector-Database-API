@@ -106,14 +106,6 @@ def delete_vectors_from_db(user_id, document_id_list, vector_store_path, llm_pro
             "message": error_msg
         })
     
-    finally:
-        # Cleanup resources
-        try:
-            if vectorstore:
-                vectorstore._collection.close()
-            
-        except Exception as e:
-            logger.error(f"Error during cleanup: {str(e)}", exc_info=True)
     
     return file_deletion_status
 
