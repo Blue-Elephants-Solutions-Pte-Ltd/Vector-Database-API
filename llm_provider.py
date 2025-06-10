@@ -3,6 +3,10 @@ from langchain_mistralai import MistralAIEmbeddings , ChatMistralAI
 from langchain_cohere import CohereEmbeddings, ChatCohere
 from langchain_aws import BedrockEmbeddings, ChatBedrock
 
+import os 
+import dotenv
+dotenv.load_dotenv()
+
 def get_embeddings_model(provider, model_name, api_key):
     try:
         if provider == "openai":
@@ -31,13 +35,13 @@ def get_embeddings_model(provider, model_name, api_key):
         
         elif provider == "default-openai":
             embeddings = OpenAIEmbeddings(
-                model=model_name,
-                api_key=api_key,
+                model="text-embedding-ada-002",
+                api_key=os.getenv("OPENAI_API_KEY"),
             )
         elif provider == "default-mistral":
             embeddings = MistralAIEmbeddings(
-                model=model_name,
-                api_key=api_key
+                model="mistral-embed",
+                api_key=os.getenv("MISTRAL_API_KEY")
             )
         else:
             print("Else")
@@ -81,14 +85,14 @@ def get_chat_model(provider, model_name, api_key):
             
         elif provider == "default-openai":
             llm = ChatOpenAI(
-                model=model_name,
-                api_key=api_key,
+                model="gpt-4.1-mini",
+                api_key=os.getenv("OPENAI_API_KEY"),
             )
             
         elif provider == "default-mistral":
             llm = ChatMistralAI(
-                model=model_name,
-                api_key=api_key
+                model="mistral-large-latest",
+                api_key=os.getenv("MISTRAL_API_KEY")
             )
             
         else:

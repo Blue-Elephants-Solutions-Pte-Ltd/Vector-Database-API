@@ -27,16 +27,12 @@ class EmbeddingQueue:
         wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def add_documents_with_retry(self, vector_store, documents):
-        try:
-            return vector_store.add_documents(documents=documents)
-        except Exception as e:
-            logger.error(f"Error adding documents to vector store: {str(e)}")
-            raise
+        return vector_store.add_documents(documents=documents)
     
     def process_batch(self, batch, batch_number):
         try:
-            logger.info(f"Processing batch {batch_number} of {self.total_batches}")
-            logger.info(f"Batch size: {len(batch)} documents")
+            print(f"\nProcessing batch {batch_number} of {self.total_batches}")
+            print(f"Batch size: {len(batch)} documents")
             
             vector_store = Chroma(
                 embedding_function=self.embeddings,
@@ -57,15 +53,15 @@ class EmbeddingQueue:
             for future in futures:
                 future.result()
             
-            logger.info(f"Successfully processed batch {batch_number}")
+            print(f"✅ Successfully processed batch {batch_number}")
             
             # Set processing_complete if this is the last batch
             if batch_number == self.total_batches:
                 self.processing_complete = True
                 
         except Exception as e:
-            logger.error(f"Error processing batch {batch_number}: {str(e)}")
-            logger.info("Retrying in 15 seconds...")
+            print(f"❌ Error processing batch {batch_number}: {str(e)}")
+            print("Retrying in 15 seconds...")
             time.sleep(15)
             try:
                 vector_store = Chroma(
@@ -73,14 +69,14 @@ class EmbeddingQueue:
                     persist_directory=self.vectorstore_path
                 )
                 self.add_documents_with_retry(vector_store, batch)
-                logger.info(f"Successfully processed batch {batch_number} after retry")
+                print(f"✅ Successfully processed batch {batch_number} after retry")
                 
                 # Set processing_complete if this is the last batch
                 if batch_number == self.total_batches:
                     self.processing_complete = True
                     
             except Exception as e:
-                logger.error(f"Failed to process batch {batch_number} after retry: {str(e)}")
+                print(f"❌ Failed to process batch {batch_number} after retry: {str(e)}")
                 raise
     
     def queue_processor(self):
@@ -91,8 +87,8 @@ class EmbeddingQueue:
                 self.current_batch += 1
                 
                 if not self.queue.empty():
-                    logger.info(f"Waiting {45} seconds before processing next batch...")
-                    logger.info(f"Remaining batches in queue: {self.queue.qsize()}")
+                    print("\nWaiting 45 seconds before processing next batch...")
+                    print(f"Remaining batches in queue: {self.queue.qsize()}")
                     time.sleep(45)
                 
             except Empty:
@@ -100,14 +96,11 @@ class EmbeddingQueue:
                     break  # Exit the loop if all batches are processed
                 continue
             except Exception as e:
-                logger.error(f"Unexpected error in queue processor: {str(e)}")
+                print(f"Unexpected error in queue processor: {str(e)}")
                 self.stop_event.set()
                 raise
     
     def start_processing(self, documents, batch_size):
-        if not documents:
-            raise ValueError("No documents provided for processing")
-            
         self.total_batches = (len(documents) + batch_size - 1) // batch_size
         
         # Split documents into batches and add to queue

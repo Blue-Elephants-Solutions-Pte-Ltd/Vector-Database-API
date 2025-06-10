@@ -228,30 +228,19 @@ def delete_vectors():
         llm_provider = data.get('llm_provider')
         api_key = data['api_key']
         embedding_model = data['embedding_model']
-        
-        file_deletion_status=[]
         user_vector_store = os.path.join(VECTORSTORE_PATH, f"{user_id}",f"{embedding_model}")
-        for file_data in file_related_data:
-            document_id = file_data["document_id"]
-            logger.info(f"Processing document ID: {document_id}")
-
-            if document_id is None:
-                logger.error("Error: document_id is None")
-                return jsonify({'error': 'the document_id cannot be None'}), 400
-            
-            document_id=str(document_id)
-            if not document_id.isdigit():
-                logger.error("Error: document_id is not an integer")
-                return jsonify({'error': 'the document_id must be an integer'}), 400
-
-            document_id_list = [document_id]
-            logger.info(f"Deleting vectors for document ID: {document_id}")
-            # Delete vectors from the vector database
-            deletion_result = delete_vectors_from_db(user_id, document_id_list, user_vector_store, llm_provider, api_key, embedding_model)
-            file_deletion_status.append(deletion_result)
-            logger.info(f"Deletion result: {deletion_result}")
-            
-        logger.info("All vectors deleted successfully")
+        
+        file_deletion_status = delete_vectors_from_db(
+            user_id=user_id,
+            document_id_list=file_related_data,
+            vector_store_path=user_vector_store,
+            llm_provider=llm_provider,
+            api_key=api_key,
+            embedding_model=embedding_model
+        )
+        
+        logger.info(f"File deletion status: {file_deletion_status}")
+        
         return jsonify({
             "status": "success",
             "message": "Vectors deleted successfully",
