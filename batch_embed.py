@@ -117,3 +117,54 @@ class EmbeddingQueue:
     def stop(self):
         self.stop_event.set()
         self.executor.shutdown(wait=True)
+
+
+def vectorestore_function(split_documents_with_metadata, user_vector_store_path, embeddings, max_token_per_min, total_tokens_count):
+    processor_thread = None  # Initialize processor_thread as None
+    embedding_queue = None   # Initialize embedding_queue as None
+    try:
+        split_docs_length = len(split_documents_with_metadata)
+        
+        if total_tokens_count > max_token_per_min:
+            batch_size = split_docs_length // ((total_tokens_count // max_token_per_min) + 1)
+        else:
+            batch_size = split_docs_length
+        
+        logger.info(f"Calculated batch size: {batch_size}")
+        
+        # Initialize and start the queue
+        embedding_queue = EmbeddingQueue(
+            max_tokens_per_min=max_token_per_min,
+            vectorstore_path=user_vector_store_path,
+            embeddings=embeddings,
+            max_workers=3
+        )
+
+        try:
+            logger.info("Starting document processing...")
+            processor_thread = embedding_queue.start_processing(split_documents_with_metadata, batch_size)
+            processor_thread.join()  # Wait for all processing to complete
+        
+            if embedding_queue.processing_complete:
+                logger.info("Processing completed successfully")
+                return "success", "All documents have been processed and stored in the vector database"
+            logger.warning("Processing did not complete successfully")
+            return "error", "Processing was not completed successfully"
+            
+        except KeyboardInterrupt:
+            logger.warning("Processing interrupted by user")
+            embedding_queue.stop()
+            processor_thread.join()
+            return "error", "Processing was interrupted"
+        except Exception as e:
+            logger.error(f"Error during processing: {str(e)}")
+            embedding_queue.stop()
+            processor_thread.join()
+            return "error", f"Error during processing: {str(e)}"
+        
+    except ValueError as e:
+        logger.error(f"Validation error: {str(e)}")
+        return "error", str(e)
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        return "error", str(e)

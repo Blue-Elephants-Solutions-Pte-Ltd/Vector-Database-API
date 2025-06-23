@@ -87,6 +87,9 @@ def get_chat_model(provider, model_name, api_key):
             llm = ChatOpenAI(
                 model="gpt-4.1-mini",
                 api_key=os.getenv("OPENAI_API_KEY"),
+                default_headers={
+                    "OpenAI-Data-Retention-Policy": "zero"
+                }
             )
             
         elif provider == "default-mistral":

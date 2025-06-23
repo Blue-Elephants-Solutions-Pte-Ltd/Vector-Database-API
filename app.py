@@ -9,7 +9,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from batch_embed import EmbeddingQueue
+from batch_embed import vectorestore_function
 from llm_provider import get_embeddings_model
 from doc_retrieval import doc_retriever
 from utils import format_docs, get_metadata_from_docs
@@ -85,64 +85,20 @@ def add_vectors():
         embedding_function = get_embeddings_model(llm_provider, embeddings_model, api_key)
         logger.info(f"Embedding function created: {embedding_function}")
 
-        # Calculate batch size based on token count
-        if total_tokens_count > max_token_per_min:
-            batch_size = split_docs_length // ((total_tokens_count // max_token_per_min) + 1)
+        status, message = vectorestore_function(split_documents_with_metadata, user_vector_store, embedding_function, max_token_per_min, total_tokens_count)
+        
+        if status == "success":
+            return jsonify({
+                "status": "success",
+                "message": message
+            }), 200
         else:
-            batch_size = split_docs_length
-        logger.info(f"Calculated batch size: {batch_size}")
-        
-        # Initialize and start the queue
-        embedding_queue = EmbeddingQueue(
-            max_tokens_per_min=max_token_per_min,
-            vectorstore_path=user_vector_store,
-            embeddings=embedding_function,
-            max_workers=3
-        )
-        logger.info("Embedding queue initialized")
-
-        try:
-            logger.info("Starting document processing...")
-            processor_thread = embedding_queue.start_processing(split_documents_with_metadata, batch_size)
-            processor_thread.join()  # Wait for all processing to complete
-            
-            if embedding_queue.processing_complete:
-                logger.info("Processing completed successfully")
-                return jsonify({
-                    "status": "success",
-                    "message": "All documents have been processed and stored in the vector database"
-                }), 200
-            logger.warning("Processing did not complete successfully")
             return jsonify({
                 "status": "error",
-                "message": "Processing was not completed successfully"
+                "message": message
             }), 500
-            
-        except KeyboardInterrupt:
-            logger.warning("Processing interrupted by user")
-            embedding_queue.stop()
-            processor_thread.join()
-            return jsonify({
-                "status": "error",
-                "message": "Processing was interrupted"
-            }), 500
-        except Exception as e:
-            logger.error(f"Error during processing: {str(e)}")
-            embedding_queue.stop()
-            processor_thread.join()
-            return jsonify({
-                "status": "error",
-                "message": f"Error during processing: {str(e)}"
-            }), 500
-        
-    except ValueError as e:
-        logger.error(f"Validation error: {str(e)}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 400
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Error in add_vectors: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
