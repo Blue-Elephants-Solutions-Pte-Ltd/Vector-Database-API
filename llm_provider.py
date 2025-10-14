@@ -43,6 +43,20 @@ def get_embeddings_model(provider, model_name, api_key):
                 model="mistral-embed",
                 api_key=os.getenv("MISTRAL_API_KEY")
             )
+        elif provider == "default-azure": #Only for Azure OpenAI-GDPR
+            print("-"*100)
+            print("Default Azure")
+            print("-"*100)
+            from langchain_openai import AzureOpenAIEmbeddings
+            azure_endpoint = "https://openai-germany-ai-assistant.openai.azure.com/"
+            api_version = "2024-02-15-preview"
+            
+            embeddings = AzureOpenAIEmbeddings(
+                openai_api_key = api_key,
+                openai_api_version=api_version,
+                azure_endpoint=azure_endpoint,
+                azure_deployment=model_name
+                )
         else:
             print("Else")
             embeddings = OpenAIEmbeddings(
@@ -96,6 +110,20 @@ def get_chat_model(provider, model_name, api_key):
             llm = ChatMistralAI(
                 model="mistral-large-latest",
                 api_key=os.getenv("MISTRAL_API_KEY")
+            )
+            
+        elif provider == "default-azure": #Only for Azure OpenAI-GDPR
+            from langchain_openai import AzureChatOpenAI
+            llm = AzureChatOpenAI(
+                openai_api_key=api_key,
+                openai_api_version="2024-02-15-preview",
+                azure_endpoint="https://openai-germany-ai-assistant.openai.azure.com/",
+                azure_deployment=model_name,
+                streaming=True,
+                temperature=0.7,
+                model_kwargs={
+                    "stream_options": {"include_usage": True}
+                }
             )
             
         else:
