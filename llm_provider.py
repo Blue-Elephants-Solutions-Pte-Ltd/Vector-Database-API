@@ -48,8 +48,10 @@ def get_embeddings_model(provider, model_name, api_key):
             print("Default Azure")
             print("-"*100)
             from langchain_openai import AzureOpenAIEmbeddings
-            azure_endpoint = "https://openai-germany-ai-assistant.openai.azure.com/"
+            api_key = os.getenv("AZURE_OPENAI_API_KEY")
             api_version = "2024-02-15-preview"
+            azure_endpoint = "https://openai-germany-ai-assistant.openai.azure.com/"
+            model_name = "text-embedding-3-large"
             
             embeddings = AzureOpenAIEmbeddings(
                 openai_api_key = api_key,
@@ -115,10 +117,10 @@ def get_chat_model(provider, model_name, api_key):
         elif provider == "default-azure": #Only for Azure OpenAI-GDPR
             from langchain_openai import AzureChatOpenAI
             llm = AzureChatOpenAI(
-                openai_api_key=api_key,
+                openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
                 openai_api_version="2024-02-15-preview",
                 azure_endpoint="https://openai-germany-ai-assistant.openai.azure.com/",
-                azure_deployment=model_name,
+                azure_deployment="gpt-4.1-mini",
                 streaming=True,
                 temperature=0.7,
                 model_kwargs={
