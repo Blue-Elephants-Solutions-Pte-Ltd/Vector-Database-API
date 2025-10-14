@@ -11,7 +11,9 @@ def get_embeddings_model(provider, model_name, api_key):
     try:
         # Normalize provider name to avoid mismatches due to case/whitespace
         provider_normalized = (provider or "").strip().lower()
-
+        print(f"Provider normalized: {provider_normalized}")
+        print(f"Model name: {model_name}")
+        print(f"API key: {api_key}")
         if provider_normalized == "openai":
             embeddings = OpenAIEmbeddings(
                 model=model_name,
@@ -41,11 +43,13 @@ def get_embeddings_model(provider, model_name, api_key):
                 model="text-embedding-ada-002",
                 api_key=os.getenv("OPENAI_API_KEY"),
             )
+            
         elif provider_normalized == "default-mistral":
             embeddings = MistralAIEmbeddings(
                 model="mistral-embed",
                 api_key=os.getenv("MISTRAL_API_KEY")
             )
+            
         elif provider_normalized == "default-azure": # Only for Azure OpenAI-GDPR
             print("-"*100)
             print("Default Azure")
@@ -85,7 +89,10 @@ def get_chat_model(provider, model_name, api_key):
     try:
         # Normalize provider name to avoid mismatches due to case/whitespace
         provider_normalized = (provider or "").strip().lower()
-
+        print(f"Provider normalized: {provider_normalized}")
+        print(f"Model name: {model_name}")
+        print(f"API key: {api_key}")
+        
         if provider_normalized == "openai":
             llm = ChatOpenAI(
                 model=model_name,
@@ -127,6 +134,7 @@ def get_chat_model(provider, model_name, api_key):
             
         elif provider_normalized == "default-azure": # Only for Azure OpenAI-GDPR
             from langchain_openai import AzureChatOpenAI
+            print(f"Azure Chat OpenAI")
             llm = AzureChatOpenAI(
                 openai_api_key=os.getenv("AZURE_OPENAI_API_KEY") or api_key,
                 openai_api_version="2024-02-15-preview",
