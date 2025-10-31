@@ -6,9 +6,10 @@ langchain-openai
 langchain-mistralai
 langchain-cohere
 langchain-aws
-langchain-chroma
+langchain-qdrant
 langchain-text-splitters
 openai
-chromadb
+qdrant-client
 tenacity
 python-dotenv
+tiktoken

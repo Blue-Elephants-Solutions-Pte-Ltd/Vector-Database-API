@@ -2,40 +2,71 @@
 
 A powerful API service for managing vector embeddings and document retrieval using various LLM providers.
 
-## Docker Setup
-
-### Prerequisites
+## Prerequisites
+- Docker (Windows: Docker Desktop; Linux/macOS: Docker Engine + docker compose)
 - Docker installed on your server
 - Sudo access to create directories
 
 ### Important Note
 > ⚠️ Please execute the commands exactly as shown below. Do not modify any parameters or flags as they are specifically configured for optimal performance.
 
-### Installation Steps
+## Quick Start (docker run, no compose)
+Run Qdrant and the API with simple docker run commands (no compose).
 
-1. Update system packages and create the required directory for vector storage:
+### Run pulled image
 ```bash
-# Update system packages
-sudo apt update
+# Create persistent volume for Qdrant storage (once)
+docker volume create ai-assistant-qdrant
 
-# Create a directory to store vector data with proper permissions
-# The -p flag will create all necessary parent directories including /var/www if they don't exist
-sudo mkdir -p /var/www/VECTOR_DB
-sudo chmod 777 /var/www/VECTOR_DB
+# Run the single container
+docker network create vector-net
+
+docker run -d \
+  --name qdrant \
+  --network vector-net \
+  -p 6333:6333 \
+  -e QDRANT__SERVICE__API_KEY=your-strong-key \
+  -v ai-assistant-qdrant:/qdrant/storage \
+  --restart unless-stopped \
+  qdrant/qdrant:latest
+
+docker run -d \
+  --name vector-db-api \
+  --network vector-net \
+  -e QDRANT_API_KEY=your-strong-key \
+  -e QDRANT_URL=http://qdrant:6333 \
+  -p 2100:2100 \
+  --restart unless-stopped \
+  ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
+
+
+# Verify
+curl -H "api-key: your-strong-key" http://localhost:6333/healthz
+curl http://localhost:2100/
 ```
 
-2. Pull and run the Docker container:
-```bash
+### What gets started
+- Qdrant (vector database) with API key authentication, data persisted in the volume `ai-assistant-qdrant`.
+- The Vector Database API (port 2100) in a separate container.
 
-# Download the latest version of the vector-db-api image
+### Authentication
+- Qdrant uses its native API key authentication. The UI and API require the header `api-key: <YOUR_QDRANT_API_KEY>`.
+
+### Updating to a new version
+```bash
 docker pull ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
-
-# Run the container in detached mode, mapping port 2100 and mounting the vector storage directory
-# docker run -d -p 2100:2100 --name vector-db-api -v /var/www/VECTOR_DB:/app/VECTOR_DB ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
-
-docker run -d -p 2100:2100 --name vector-db-api -e AES_ENC_KEY='your_user_secret_key' -e AES_IV='your_user_secret_iv' -v /var/www/VECTOR_DB:/app/VECTOR_DB ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
-
+docker rm -f vector-db-api || true
+docker run -d --name vector-db-api \
+  --network vector-net \
+  -e QDRANT_API_KEY=your-strong-key \
+  -e QDRANT_URL=http://qdrant:6333 \
+  -p 2100:2100 \
+  --restart unless-stopped \
+  ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest
 ```
+Your data remains intact because it lives in the external volume.
+
+---
 
 ### Container Management
 
@@ -46,7 +77,13 @@ docker logs -f vector-db-api
 ```
 
 ## Notes
-
 - The API runs on port 2100 by default
-- Vector data is persisted in the mounted volume at `/var/www/VECTOR_DB`
-- Each user's vectors are stored in separate directories
+---
+
+## Environment Template
+
+An example env file is provided at `docker_container/env.template`. Copy it to `.env` if you want to pre-provision the key without prompts:
+
+```bash
+cp docker_container/env.template docker_container/.env
+```

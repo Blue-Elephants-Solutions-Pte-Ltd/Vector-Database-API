@@ -9,31 +9,35 @@ def decrypt_api_key(api_key):
     
     # Get encryption key and IV from environment variables or use defaults
     # Get encryption key and IV from environment variables or use defaults
-    key = os.getenv('AES_ENC_KEY').encode('utf-8')
-    iv = os.getenv('AES_IV').encode('utf-8')
+    # key = os.getenv('AES_ENC_KEY').encode('utf-8')
+    # iv = os.getenv('AES_IV').encode('utf-8')
     
+    # print(f"key: {key}")
+    # print(f"iv: {iv}")
     
-    # Create cipher
-    cipher = Cipher(
-        algorithms.AES(key),
-        modes.CBC(iv),
-        backend=default_backend()
-    )
+    # print(f"Key length: {len(key)} bytes")  # should be 16, 24, or 32
+    # print(f"IV length: {len(iv)} bytes")    # should be exactly 16
+    # # Create cipher
+    # cipher = Cipher(
+    #     algorithms.AES(key),
+    #     modes.CBC(iv),
+    #     backend=default_backend()
+    # )
     
-    # Create decryptor
-    decryptor = cipher.decryptor()
+    # # Create decryptor
+    # decryptor = cipher.decryptor()
     
-    # Decrypt the API key
-    encrypted_data = bytes.fromhex(api_key)
-    decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+    # # Decrypt the API key
+    # encrypted_data = bytes.fromhex(api_key)
+    # decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
     
-    # Create unpadder
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+    # # Create unpadder
+    # unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
     
-    # Remove padding
-    unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
+    # # Remove padding
+    # unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
     
-    # Decode to UTF-8
-    api_key = unpadded_data.decode('utf-8')
-    print(f"Decrypted API Key: {api_key}")
+    # # Decode to UTF-8
+    # api_key = unpadded_data.decode('utf-8')
+    # print(f"Decrypted API Key: {api_key}")
     return api_key

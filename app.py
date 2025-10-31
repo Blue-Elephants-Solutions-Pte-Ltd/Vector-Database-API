@@ -13,9 +13,8 @@ from batch_embed import vectorestore_function
 from llm_provider import get_embeddings_model
 from doc_retrieval import doc_retriever
 from utils import format_docs, get_metadata_from_docs
-from delete_vectors import delete_vectors_from_db, delete_all_vectors_from_db
-from langchain_chroma import Chroma
-
+from vector_config.delete_vector_store import delete_document_from_qdrant
+from vector_config.delete_vector_store import delete_collection_from_qdrant
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -26,14 +25,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configure paths
-BASE_DIR = Path(__file__).resolve().parent
-VECTORSTORE_PATH = os.path.join(BASE_DIR, "VECTOR_DB")  # This will be /app/VECTOR_DB in container
+# Qdrant settings (provided via docker-compose env)
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
-# Ensure the vector store directory exists
-os.makedirs(VECTORSTORE_PATH, exist_ok=True)
-
-logger.info(f"Vector store path: {VECTORSTORE_PATH}")
+def build_collection_name(user_id: str, embeddings_model: str) -> str:
+    return f"user_{user_id}__{embeddings_model}".replace("/", "_")
 
 app = Flask(__name__)
 CORS(app)
@@ -77,7 +74,7 @@ def add_vectors():
         split_docs_length = len(split_documents_with_metadata)
         logger.info(f"Split documents with metadata length: {split_docs_length}")
         
-        user_vector_store = os.path.join(VECTORSTORE_PATH, f"{user_id}",f"{embeddings_model}")
+        collection_name = build_collection_name(user_id, embeddings_model)
         # os.makedirs(user_vector_store, exist_ok=True)
         # os.chmod(user_vector_store, 0o777)  # Give full permissions to ensure write access
         
@@ -85,7 +82,13 @@ def add_vectors():
         embedding_function = get_embeddings_model(llm_provider, embeddings_model, api_key)
         logger.info(f"Embedding function created: {embedding_function}")
 
-        status, message = vectorestore_function(split_documents_with_metadata, user_vector_store, embedding_function, max_token_per_min, total_tokens_count)
+        status, message = vectorestore_function(
+            split_documents_with_metadata,
+            collection_name,
+            embedding_function,
+            max_token_per_min,
+            total_tokens_count
+        )
         
         if status == "success":
             return jsonify({
@@ -123,7 +126,7 @@ def retrieve_documents():
         embedding_model = data['embedding_model']
         chat_model = data['chat_model']
 
-        user_vector_store = os.path.join(VECTORSTORE_PATH, f"{user_id}",f"{embedding_model}")
+        collection_name = build_collection_name(user_id, embedding_model)
         
         logger.info("Starting document retrieval...")
         # Call the document retriever
@@ -136,7 +139,7 @@ def retrieve_documents():
             llm_provider=llm_provider,
             api_key=api_key,
             embedding_model=embedding_model,
-            vectorstore_path=user_vector_store,
+            collection_name=collection_name,
             chat_model=chat_model
         )
         
@@ -173,6 +176,7 @@ def retrieve_documents():
 
 @app.route('/delete_vectors', methods=['POST'])
 def delete_vectors():
+    file_deletion_status = []
     try:
         data = request.get_json()
         logger.info("===== Delete Vectors Request =====")
@@ -181,19 +185,33 @@ def delete_vectors():
         
         user_id = data['user_id']
         file_related_data = data['file_related_data']
-        llm_provider = data.get('llm_provider')
-        api_key = data['api_key']
         embedding_model = data['embedding_model']
-        user_vector_store = os.path.join(VECTORSTORE_PATH, f"{user_id}",f"{embedding_model}")
-        
-        file_deletion_status = delete_vectors_from_db(
-            user_id=user_id,
-            document_id_list=file_related_data,
-            vector_store_path=user_vector_store,
-            llm_provider=llm_provider,
-            api_key=api_key,
-            embedding_model=embedding_model
-        )
+
+        # Normalize to list of document_id strings
+        document_ids = []
+        if isinstance(file_related_data, dict) and 'document_id' in file_related_data:
+            document_ids = [str(file_related_data['document_id'])]
+        elif isinstance(file_related_data, list):
+            for item in file_related_data:
+                if isinstance(item, dict) and 'document_id' in item:
+                    document_ids.append(str(item['document_id']))
+                else:
+                    document_ids.append(str(item))
+        else:
+            document_ids = [str(file_related_data)]
+
+        for doc_id in document_ids:
+            message, ok = delete_document_from_qdrant(
+                user_id=user_id,
+                doc_id=doc_id,
+                embedding_model=embedding_model
+            )
+            file_deletion_status.append({
+                "user_id": user_id,
+                "document_id": doc_id,
+                "status": "success" if ok else "error",
+                "message": message
+            })
         
         logger.info(f"File deletion status: {file_deletion_status}")
         
@@ -205,8 +223,8 @@ def delete_vectors():
     except Exception as e:
         logger.error(f"Error in delete_vectors: {str(e)}")
         return jsonify({
-            "status": "success",
-            "file_deletion_status": file_deletion_status if file_deletion_status else data,
+            "status": "error",
+            "file_deletion_status": file_deletion_status or [],
             "message": str(e)
         }), 400
 
@@ -218,35 +236,20 @@ def remove_all_vectors():
         data = request.get_json()
         user_id = data['user_id']
         embeddings_model = data['embeddings_model']
-        api_key = data['api_key']
-        llm_provider = data['llm_provider']
         logger.info(f"Request data: {data}")
         logger.info("----------------------------------------------------------------")
 
-        user_vector_store = os.path.join(VECTORSTORE_PATH, f"{user_id}",f"{embeddings_model}")
-        try:
-            # Check if directory exists before proceeding
-            if os.path.exists(user_vector_store):
-                delete_all_vectors_from_db(user_id, user_vector_store, llm_provider, api_key, embeddings_model)
-                logger.info("Old vectors deleted successfully from vector store.")
-                return jsonify({
-                    "status": "success",
-                    "message": "All old vectors of same model removed successfully"
-                }), 200
-            else:
-                logger.info("No existing vector store found for this model.")
-                return jsonify({
-                    "status": "success",
-                    "message": "No existing vectors found for this model"
-                }), 200
-                
-        except Exception as e:
-            logger.error(f"Error in remove_all_vectors: {str(e)}")
+        message, ok = delete_collection_from_qdrant(user_id, embeddings_model)
+        if ok:
+            return jsonify({
+                "status": "success",
+                "message": message
+            }), 200
+        else:
             return jsonify({
                 "status": "error",
-                "message": str(e)
-            }), 400
-            
+                "message": message
+            }), 500
     except Exception as e:
         logger.error(f"Error in remove_all_vectors: {str(e)}")
         return jsonify({

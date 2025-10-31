@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vector Database API - Setup Guide</title>
+    <meta name="description" content="Step-by-step guide to set up Qdrant and the Vector Database API using Docker." />
+    <style>
+        :root {
+            --bg: #0b0c10;
+            --panel: #111318;
+            --panel-2: #141821;
+            --text: #e8eaed;
+            --muted: #aab0b8;
+            --brand: #4f8cff;
+            --accent: #8ab4f8;
+            --ok: #34d399;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --border: #232733;
+            --code-bg: #0f1320;
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            --radius: 14px;
+        }
+
+        [data-theme="light"] {
+            --bg: #f6f7fb;
+            --panel: #ffffff;
+            --panel-2: #f7f9fc;
+            --text: #0b1220;
+            --muted: #5b6574;
+            --brand: #2563eb;
+            --accent: #2563eb;
+            --ok: #059669;
+            --warn: #b45309;
+            --danger: #b91c1c;
+            --border: #e3e7ef;
+            --code-bg: #0f172a;
+            --card-shadow: 0 8px 24px rgba(9, 30, 66, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(1200px 800px at 80% -100px, rgba(79, 140, 255, 0.12), transparent 60%),
+                radial-gradient(1000px 700px at -200px 30%, rgba(138, 180, 248, 0.10), transparent 60%),
+                var(--bg);
+            color: var(--text);
+            font: 15px/1.6 system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 32px 20px 80px;
+        }
+
+        header.hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 28px 24px;
+            background: linear-gradient(180deg, rgba(79, 140, 255, 0.08), rgba(79, 140, 255, 0.0)), var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .hero h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            letter-spacing: 0.2px;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(79, 140, 255, 0.10);
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-top: 22px;
+        }
+
+        @media (min-width: 880px) {
+            .grid.two {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        section.card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .card .hd {
+            padding: 18px 18px 10px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+        }
+
+        [data-theme="light"] .card .hd {
+            border-bottom: 1px dashed rgba(2, 6, 23, 0.06);
+        }
+
+        .card .hd h2 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .card .hd p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .card .bd {
+            padding: 16px 18px 22px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .callout {
+            padding: 14px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02));
+            color: #ffd386;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        [data-theme="light"] .callout {
+            color: #8a5800;
+        }
+
+        .list {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .list li {
+            margin: 8px 0;
+        }
+
+        .cmd-title {
+            display: none;
+        }
+
+        .code-card {
+            position: relative;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .code-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border);
+        }
+
+        [data-theme="light"] .code-toolbar {
+            background: rgba(2, 6, 23, 0.03);
+        }
+
+        .code-toolbar .title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        pre {
+            margin: 0;
+            max-width: 100%;
+            overflow: auto;
+            background: var(--code-bg);
+        }
+
+        pre code {
+            display: block;
+            padding: 14px 16px;
+            color: #d1e7ff;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            tab-size: 2;
+            white-space: pre;
+        }
+
+        .copy-btn {
+            appearance: none;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            border-radius: 10px;
+            padding: 6px 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform .05s ease, background .2s ease, border-color .2s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .copy-btn:active {
+            transform: translateY(1px);
+        }
+
+        .copy-btn.success {
+            border-color: rgba(52, 211, 153, 0.6);
+            background: rgba(52, 211, 153, 0.1);
+        }
+
+        .copy-btn .icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .sep {
+            height: 1px;
+            background: var(--border);
+            margin: 12px 0;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body data-theme="dark">
+    <div class="container">
+        <header class="hero">
+            <div>
+                <div class="badge" title="Docker-based deployment">Vector Database API • Docker Setup</div>
+                <h1>Vector Database API</h1>
+                <p>Powerful API for managing vector embeddings and document retrieval using various LLM providers.</p>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="Toggle theme">
+                <span class="icon" aria-hidden="true">
+                    <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                            stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" />
+                    </svg>
+                </span>
+                Theme
+            </button>
+        </header>
+
+       
+        <div class="grid">
+            <section class="card">
+                <div class="hd">
+                    <h2>Prerequisites</h2>
+                    <p class="muted">Ensure these are installed and accessible before proceeding.</p>
+                </div>
+                <div class="bd">
+                    <ul class="list">
+                        <li>Docker (Windows: Docker Desktop; Linux/macOS: Docker Engine + docker compose)</li>
+                        <li>Docker installed on your server</li>
+                        <li>Sudo access to create directories</li>
+                    </ul>
+                    <div class="sep"></div>
+                    <div class="callout" role="note" aria-label="Important Note">
+                        <div style="margin-top:2px">⚠️</div>
+                        <div>
+                            <strong>Important Note:</strong> Please execute the commands exactly as shown below. Do not
+                            modify any parameters or flags as they are specifically configured for optimal performance.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="callout" role="note" aria-label="Tip" style="margin-top:16px;">
+                <div style="margin-top:2px">💡</div>
+                <div>
+                    <strong>Tip:</strong> Replace the placeholder <code>your-strong-key</code> with your actual secret <em>before</em> running commands.
+                </div>
+            </div>
+    
+            <section class="card">
+                <div class="hd">
+                    <h2>Quick Start (docker run, no compose)</h2>
+                    <p class="muted">Run Qdrant and the API with simple docker run commands (no compose).</p>
+                </div>
+                <div class="bd">
+
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Create persistent volume (once)</div>
+                            <button class="copy-btn" data-copy title="Copy to clipboard">
+                                <span class="icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg>
+                                </span>
+                                Copy
+                            </button>
+                        </div>
+                        <pre><code>docker volume create ai-assistant-qdrant</code></pre>
+                    </div>
+
+
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Create network</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker network create vector-net</code></pre>
+                    </div>
+
+
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Run Qdrant</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker run -d \
+  --name qdrant \
+  --network vector-net \
+  -p 6333:6333 \
+  -e QDRANT__SERVICE__API_KEY=your-strong-key \
+  -v ai-assistant-qdrant:/qdrant/storage \
+  --restart unless-stopped \
+  qdrant/qdrant:latest</code></pre>
+                    </div>
+
+
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Run Vector Database API</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker run -d \
+  --name vector-db-api \
+  --network vector-net \
+  -e QDRANT_API_KEY=your-strong-key \
+  -e QDRANT_URL=http://qdrant:6333 \
+  -p 2100:2100 \
+  --restart unless-stopped \
+  ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest</code></pre>
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="hd">
+                    <h2>What gets started</h2>
+                </div>
+                <div class="bd">
+                    <ul class="list">
+                        <li>Qdrant (vector database) with API key authentication; data persisted in volume
+                            <code>ai-assistant-qdrant</code>.
+                        </li>
+                        <li>Vector Database API (port 2100) in a separate container.</li>
+                    </ul>
+                </div>
+            </section>
+
+
+            <section class="card">
+                <div class="hd">
+                    <h2>Updating to a new version</h2>
+                </div>
+                <div class="bd">
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Pull latest image</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker pull ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest</code></pre>
+                    </div>
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Remove existing container</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker rm -f vector-db-api || true</code></pre>
+                    </div>
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Run updated container</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker run -d --name vector-db-api \
+  --network vector-net \
+  -e QDRANT_API_KEY=your-strong-key \
+  -e QDRANT_URL=http://qdrant:6333 \
+  -p 2100:2100 \
+  --restart unless-stopped \
+  ghcr.io/blue-elephants-solutions-pte-ltd/vector-db-api:latest</code></pre>
+                    </div>
+                    <p class="muted" style="margin-top:10px">Your data remains intact because it lives in the external
+                        volume.</p>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="hd">
+                    <h2>Container Management</h2>
+                </div>
+                <div class="bd">
+                    <p>View container logs (real-time):</p>
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">View logs</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>docker logs -f vector-db-api</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="hd">
+                    <h2>Notes</h2>
+                </div>
+                <div class="bd">
+                    <ul class="list">
+                        <li>The API runs on port 2100 by default.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- <section class="card">
+                <div class="hd">
+                    <h2>Environment Template</h2>
+                </div>
+                <div class="bd">
+                    <p>An example env file is provided at <code>docker_container/env.template</code>. Copy it to
+                        <code>.env</code> if you want to pre-provision the key without prompts:
+                    </p>
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">Copy env template</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>cp docker_container/env.template docker_container/.env</code></pre>
+                    </div>
+                </div>
+            </section> -->
+        </div>
+
+    </div>
+
+    <script>
+        (function () {
+            function copyToClipboard(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    return navigator.clipboard.writeText(text);
+                }
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-1000px';
+                document.body.appendChild(ta); ta.focus(); ta.select();
+                try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
+                return Promise.resolve();
+            }
+
+            function getCode(el) {
+                const code = el.closest('[data-code]')?.querySelector('pre code');
+                return code ? code.textContent : '';
+            }
+
+            function markSuccess(btn) {
+                const original = btn.innerHTML;
+                btn.classList.add('success');
+                btn.innerHTML = '<span class="icon" aria-hidden="true">' +
+                    '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                    '<path d="M20 7L10 17l-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />' +
+                    '</svg></span>Copied';
+                setTimeout(() => { btn.classList.remove('success'); btn.innerHTML = original; }, 1400);
+            }
+
+            document.querySelectorAll('[data-copy]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const text = getCode(btn);
+                    copyToClipboard(text).then(() => markSuccess(btn));
+                });
+            });
+
+            const root = document.body;
+            const toggle = document.getElementById('themeToggle');
+            const icon = document.getElementById('themeIcon');
+
+            function setTheme(theme) {
+                root.setAttribute('data-theme', theme);
+                localStorage.setItem('theme', theme);
+                if (theme === 'light') {
+                    icon.innerHTML = '<path d="M21.64 13A9 9 0 1 1 11 2.36 7 7 0 0 0 21.64 13Z" stroke="currentColor" stroke-width="1.6" fill="none" />';
+                } else {
+                    icon.innerHTML = '<path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/>';
+                }
+            }
+
+            const stored = localStorage.getItem('theme');
+            if (stored) {
+                setTheme(stored);
+            } else {
+                const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+                setTheme(prefersLight ? 'light' : 'dark');
+            }
+
+            toggle.addEventListener('click', () => {
+                const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                setTheme(next);
+            });
+        })();
+    </script>
+</body>
+
+</html>

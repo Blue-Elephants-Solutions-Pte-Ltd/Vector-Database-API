@@ -1,10 +1,13 @@
-from langchain_chroma import Chroma
+import re
+from vector_config.qdrant_client import get_qdrant_client
+from vector_config.qdrant_vectorstore import QdrantVectorStore
 import time
 from queue import Queue, Empty
 from threading import Thread, Event
 from concurrent.futures import ThreadPoolExecutor
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +16,7 @@ class EmbeddingQueue:
     def __init__(self, max_tokens_per_min=2000000, vectorstore_path=None, embeddings=None, max_workers=3):
         self.queue = Queue()
         self.max_tokens_per_min = max_tokens_per_min
-        self.vectorstore_path = vectorstore_path
+        self.vectorstore_path = vectorstore_path  # repurposed as collection_name
         self.embeddings = embeddings
         self.stop_event = Event()
         self.current_batch = 1
@@ -29,15 +32,31 @@ class EmbeddingQueue:
     def add_documents_with_retry(self, vector_store, documents):
         return vector_store.add_documents(documents=documents)
     
+    def _parse_collection_name(self):
+        """Extract user_id and embedding_model from collection name 'user_{id}__{model}'."""
+        if not self.vectorstore_path:
+            return None, None
+        try:
+            # Expected format: user_{user_id}__{embedding_model}
+            if not self.vectorstore_path.startswith("user_") or "__" not in self.vectorstore_path:
+                return None, None
+            left, embedding_model = self.vectorstore_path.split("__", 1)
+            user_id = left[len("user_"):]
+            return user_id, embedding_model
+        except Exception:
+            return None, None
+
     def process_batch(self, batch, batch_number):
         try:
             print(f"\nProcessing batch {batch_number} of {self.total_batches}")
             print(f"Batch size: {len(batch)} documents")
             
-            vector_store = Chroma(
-                embedding_function=self.embeddings,
-                persist_directory=self.vectorstore_path
-            )
+            # Build shared client and vector store wrapper from vector_config
+            client = get_qdrant_client()
+            user_id, embedding_model = self._parse_collection_name()
+            if not user_id or not embedding_model:
+                raise ValueError(f"Invalid collection name format: {self.vectorstore_path}")
+            vector_store = QdrantVectorStore(client=client, embeddings=self.embeddings, embedding_model=embedding_model)
             
             # Split batch into smaller sub-batches for parallel processing
             sub_batch_size = max(1, len(batch) // self.max_workers)
@@ -46,7 +65,7 @@ class EmbeddingQueue:
             # Process sub-batches in parallel
             futures = []
             for sub_batch in sub_batches:
-                future = self.executor.submit(self.add_documents_with_retry, vector_store, sub_batch)
+                future = self.executor.submit(vector_store.add_documents_with_retry, sub_batch, user_id)
                 futures.append(future)
             
             # Wait for all sub-batches to complete
@@ -64,11 +83,12 @@ class EmbeddingQueue:
             print("Retrying in 15 seconds...")
             time.sleep(15)
             try:
-                vector_store = Chroma(
-                    embedding_function=self.embeddings,
-                    persist_directory=self.vectorstore_path
-                )
-                self.add_documents_with_retry(vector_store, batch)
+                client = get_qdrant_client()
+                user_id, embedding_model = self._parse_collection_name()
+                if not user_id or not embedding_model:
+                    raise ValueError(f"Invalid collection name format: {self.vectorstore_path}")
+                vector_store = QdrantVectorStore(client=client, embeddings=self.embeddings, embedding_model=embedding_model)
+                vector_store.add_documents_with_retry(batch, user_id)
                 print(f"✅ Successfully processed batch {batch_number} after retry")
                 
                 # Set processing_complete if this is the last batch
