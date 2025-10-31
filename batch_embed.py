@@ -1,5 +1,5 @@
 import re
-from vector_config.qdrant_client import get_qdrant_client
+from vector_config.qdrant_client import get_qdrant_client, QDRANT_COLLECTION_PREFIX
 from vector_config.qdrant_vectorstore import QdrantVectorStore
 import time
 from queue import Queue, Empty
@@ -33,15 +33,18 @@ class EmbeddingQueue:
         return vector_store.add_documents(documents=documents)
     
     def _parse_collection_name(self):
-        """Extract user_id and embedding_model from collection name 'user_{id}__{model}'."""
+        """Extract user_id and embedding_model from collection name '{PREFIX}{user_id}_{model}'."""
         if not self.vectorstore_path:
             return None, None
         try:
-            # Expected format: user_{user_id}__{embedding_model}
-            if not self.vectorstore_path.startswith("user_") or "__" not in self.vectorstore_path:
+            # Expected format: f"{QDRANT_COLLECTION_PREFIX}{user_id}_{embedding_model}"
+            prefix = QDRANT_COLLECTION_PREFIX
+            if not self.vectorstore_path.startswith(prefix):
                 return None, None
-            left, embedding_model = self.vectorstore_path.split("__", 1)
-            user_id = left[len("user_"):]
+            remainder = self.vectorstore_path[len(prefix):]
+            if "_" not in remainder:
+                return None, None
+            user_id, embedding_model = remainder.split("_", 1)
             return user_id, embedding_model
         except Exception:
             return None, None

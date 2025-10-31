@@ -15,6 +15,7 @@ from doc_retrieval import doc_retriever
 from utils import format_docs, get_metadata_from_docs
 from vector_config.delete_vector_store import delete_document_from_qdrant
 from vector_config.delete_vector_store import delete_collection_from_qdrant
+from vector_config.qdrant_client import get_collection_name
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -30,7 +31,8 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 
 def build_collection_name(user_id: str, embeddings_model: str) -> str:
-    return f"user_{user_id}__{embeddings_model}".replace("/", "_")
+    # Backwards-compat shim: delegate to centralized helper
+    return get_collection_name(user_id, embeddings_model)
 
 app = Flask(__name__)
 CORS(app)

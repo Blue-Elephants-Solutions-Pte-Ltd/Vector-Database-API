@@ -20,13 +20,21 @@ def get_qdrant_client():
     return QdrantClient(url=url, api_key=api_key, timeout=52.0, check_compatibility=False)
 
 
-def get_collection_name(user_id, embedding_model):
-    """Generate collection name matching app.py naming scheme.
+# Collection naming configuration
+QDRANT_COLLECTION_PREFIX =  "ai_knowledge_assistant_"
 
-    Format: user_{user_id}__{embedding_model}, with model sanitized for slashes.
+def get_collection_name(user_id, embedding_model):
+    """Generate collection name for a user and embedding model combination
+
+    Format: {PREFIX}{user_id}_{embedding_model}, with model sanitized for '-', '.', '/'.
     """
-    safe_embedding_model = embedding_model.replace("/", "_")
-    return f"user_{user_id}__{safe_embedding_model}"
+    safe_embedding_model = (
+        embedding_model
+        .replace("-", "_")
+        .replace(".", "_")
+        .replace("/", "_")
+    )
+    return f"{QDRANT_COLLECTION_PREFIX}{user_id}_{safe_embedding_model}"
 
 def get_embedding_dimension(embeddings):
     """Get embedding dimension dynamically from the embeddings model"""
