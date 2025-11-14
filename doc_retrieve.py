@@ -1,5 +1,3 @@
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors.chain_extract import LLMChainExtractor
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
@@ -203,10 +201,7 @@ def contextual_retriever(Contextual_base_retriever, user_id, document_id_list, q
     
     # Step 5: Apply Contextual Compression
     try:
-        # Apply compression directly to documents without custom retriever
-        compressor = LLMChainExtractor.from_llm(llm)
-        
-        # Compress each document individually
+        # Compress each document individually using LLM directly
         compressed_docs = []
         for doc in documents[:8]:  # Process top 8 documents
             try:
