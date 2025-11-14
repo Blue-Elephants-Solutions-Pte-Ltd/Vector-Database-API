@@ -63,13 +63,14 @@ def add_vectors():
         llm_provider = data.get('llm_provider')
         api_key = data['api_key']
         embeddings_model = data['embeddings_model']
+        file_name = data.get('file_name', 'unknown')
         
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)
         split_docs = text_splitter.create_documents(normalized_doc)
         logger.info(f"Number of split documents: {len(split_docs)}")
         
         split_documents_with_metadata = [
-            Document(page_content=document.page_content, metadata={"user_id": user_id, "doc_id": doc_id})
+            Document(page_content=document.page_content, metadata={"user_id": user_id, "doc_id": doc_id,"file_name": file_name})
             for document in split_docs
         ]
         
@@ -230,7 +231,6 @@ def delete_vectors():
             "message": str(e)
         }), 400
 
-
 @app.route('/remove_all_vectors', methods=['POST'])
 def remove_all_vectors():
     try:
@@ -254,6 +254,78 @@ def remove_all_vectors():
             }), 500
     except Exception as e:
         logger.error(f"Error in remove_all_vectors: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 400
+
+@app.route('/retrieve_documents_v2', methods=['POST'])
+def retrieve_documents_v2():
+    try:
+        data = request.get_json()
+        logger.info("===== Retrieve Documents Request =====")
+        logger.info(f"Request data: {data}")
+        logger.info("----------------------------------------------------------------")
+        
+        # Extract parameters from request
+        query = data['query']
+        user_id = data.get('user_id')
+        document_id_list = data.get('document_id_list')
+        score_threshold = data.get('score_threshold', 0.7)  # Default threshold
+        k_value = data.get('k_value', 5)  # Default number of results
+        llm_provider = data.get('llm_provider', 'openai')
+        api_key = data['api_key']
+        embedding_model = data['embedding_model']
+        chat_model = data['chat_model']
+
+        collection_name = build_collection_name(user_id, embedding_model)
+        
+        logger.info("Starting document retrieval...")
+        # Call the document retriever
+        results = doc_retriever(
+            query=query,
+            user_id=user_id,
+            document_id_list=document_id_list,
+            score_threshold=score_threshold,
+            k_value=k_value,
+            llm_provider=llm_provider,
+            api_key=api_key,
+            embedding_model=embedding_model,
+            collection_name=collection_name,
+            chat_model=chat_model
+        )
+        
+        retrieved_docs = results['results']
+        logger.info(f"Number of retrieved documents: {len(retrieved_docs)}")
+        
+        # try:
+        #     context = format_docs(retrieved_docs)
+        #     context_metadata = get_metadata_from_docs(retrieved_docs)
+        #     logger.info("Documents formatted successfully")
+        # except Exception as e:
+        #     logger.error(f"Error formatting documents: {str(e)}")
+        #     context = "No relevant docs were retrieved"
+        #     context_metadata = "No data retrieved"
+        
+        if len(retrieved_docs) > 0:
+            return jsonify({
+                "status": "success",
+                "context": retrieved_docs,
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "context": "No relevant docs were retrieved"
+            }), 400
+        
+    except ValueError as e:
+        logger.error(f"Validation error: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"Error in retrieve_documents: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
