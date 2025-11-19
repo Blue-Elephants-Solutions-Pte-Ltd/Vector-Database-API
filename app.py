@@ -296,26 +296,25 @@ def retrieve_documents_v2():
         )
         
         retrieved_docs = results['results']
-        logger.info(f"Number of retrieved documents: {len(retrieved_docs)}")
+        logger.info(f"Number of retrieved documents: {len(retrieved_docs) if retrieved_docs else 0}")
         
-        # try:
-        #     context = format_docs(retrieved_docs)
-        #     context_metadata = get_metadata_from_docs(retrieved_docs)
-        #     logger.info("Documents formatted successfully")
-        # except Exception as e:
-        #     logger.error(f"Error formatting documents: {str(e)}")
-        #     context = "No relevant docs were retrieved"
-        #     context_metadata = "No data retrieved"
-        
-        if len(retrieved_docs) > 0:
+        # Convert Document objects to dictionaries with content and metadata
+        if retrieved_docs and len(retrieved_docs) > 0:
+            serialized_docs = []
+            for doc in retrieved_docs:
+                serialized_docs.append({
+                    "content": doc.page_content,
+                    "metadata": doc.metadata
+                })
             return jsonify({
                 "status": "success",
-                "context": retrieved_docs,
+                "documents": serialized_docs,
+                "count": len(retrieved_docs)
             }), 200
         else:
             return jsonify({
                 "status": "error",
-                "context": "No relevant docs were retrieved"
+                "message": "No relevant docs were retrieved"
             }), 400
         
     except ValueError as e:
