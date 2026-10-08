@@ -1,5 +1,11 @@
 # Standard library imports
 import os
+from dotenv import load_dotenv
+load_dotenv()  # take environment variables from .env (Infisical connection details).
+
+from secrets_loader import load_secrets
+load_secrets()  # fetch real secrets from Infisical into os.environ
+
 import logging
 import sys
 from pathlib import Path

@@ -2,8 +2,6 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 import os
-from dotenv import load_dotenv
-load_dotenv()  # take environment variables from .env.
 
 def decrypt_api_key(api_key):
     

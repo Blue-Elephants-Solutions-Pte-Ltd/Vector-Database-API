@@ -3,9 +3,7 @@ from langchain_mistralai import MistralAIEmbeddings , ChatMistralAI
 from langchain_cohere import CohereEmbeddings, ChatCohere
 from langchain_aws import BedrockEmbeddings, ChatBedrock
 
-import os 
-import dotenv
-dotenv.load_dotenv()
+import os
 
 def get_embeddings_model(provider, model_name, api_key):
     try:
