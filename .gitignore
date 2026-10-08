@@ -24,11 +24,9 @@ wheels/
 venv/
 env/
 ENV/
-.env
 
 # IDE
 .idea/
-.vscode/
 *.swp
 *.swo
 .DS_Store
@@ -38,7 +36,6 @@ ENV/
 logs/
 
 # Local development settings
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -55,3 +52,5 @@ coverage.xml
 # Vector Database
 VECTOR_DB/*
 !VECTOR_DB/.gitkeep
+config.bat
+node_modules

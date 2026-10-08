@@ -3,8 +3,6 @@ from qdrant_client.models import PointStruct
 from qdrant_client.http.exceptions import UnexpectedResponse
 import threading
 import os
-import dotenv
-dotenv.load_dotenv()
 
 def get_qdrant_client():
     """Get Qdrant client instance using environment variables.

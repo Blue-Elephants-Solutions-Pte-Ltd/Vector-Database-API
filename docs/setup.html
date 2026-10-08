@@ -545,14 +545,14 @@
                 </div>
             </section>
 
-            <!-- <section class="card">
+            <section class="card">
                 <div class="hd">
-                    <h2>Environment Template</h2>
+                    <h2>Secrets: Direct API Keys or Infisical</h2>
+                    <p class="muted">An example env file is provided at <code>docker_container/env.template</code>.
+                        Copy it to <code>.env</code> (in the app's working directory) and fill in <strong>one</strong>
+                        of the two options below -- do not mix them.</p>
                 </div>
                 <div class="bd">
-                    <p>An example env file is provided at <code>docker_container/env.template</code>. Copy it to
-                        <code>.env</code> if you want to pre-provision the key without prompts:
-                    </p>
                     <div class="code-card" data-code>
                         <div class="code-toolbar">
                             <div class="title">Copy env template</div>
@@ -565,10 +565,67 @@
                                             stroke-width="1.5" stroke-linecap="round" />
                                     </svg></span>Copy</button>
                         </div>
-                        <pre><code>cp docker_container/env.template docker_container/.env</code></pre>
+                        <pre><code>cp docker_container/env.template .env</code></pre>
+                    </div>
+
+                    <div class="sep"></div>
+
+                    <h3 style="margin:0 0 6px">Option A &mdash; Direct API keys (default)</h3>
+                    <p class="muted" style="margin:0">Simplest path, works out of the box. Set the keys directly in
+                        <code>.env</code>:</p>
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">.env (direct keys)</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>QDRANT_API_KEY=your-strong-key
+OPENAI_API_KEY=sk-...
+MISTRAL_API_KEY=...
+AZURE_OPENAI_API_KEY=...</code></pre>
+                    </div>
+
+                    <h3 style="margin:14px 0 6px">Option B &mdash; Infisical-managed secrets</h3>
+                    <p class="muted" style="margin:0">Recommended for shared or production servers. Leave the keys
+                        above unset and instead provide Infisical connection details; the app fetches the real
+                        secrets from Infisical at startup and injects them into the environment automatically. All
+                        four required vars must be set together, or none at all.</p>
+                    <div class="code-card" data-code>
+                        <div class="code-toolbar">
+                            <div class="title">.env (Infisical)</div>
+                            <button class="copy-btn" data-copy> <span class="icon" aria-hidden="true"><svg
+                                        viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M9 9.5C9 8.12 10.12 7 11.5 7h6C18.88 7 20 8.12 20 9.5v6c0 1.38-1.12 2.5-2.5 2.5h-6C10.12 18 9 16.88 9 15.5v-6Z"
+                                            stroke="currentColor" stroke-width="1.5" />
+                                        <path d="M5 14.5v-6C5 7.12 6.12 6 7.5 6H15" stroke="currentColor"
+                                            stroke-width="1.5" stroke-linecap="round" />
+                                    </svg></span>Copy</button>
+                        </div>
+                        <pre><code>INFISICAL_PROJECT_ID=
+INFISICAL_CLIENT_ID=
+INFISICAL_CLIENT_SECRET=
+INFISICAL_ENVIRONMENT=
+# Optional, defaults to https://app.infisical.com. Set to the EU region
+# for GDPR-sensitive deployments:
+# INFISICAL_SITE_URL=https://eu.infisical.com</code></pre>
+                    </div>
+                    <div class="callout" role="note" aria-label="Note" style="margin-top:12px">
+                        <div style="margin-top:2px">&#9432;</div>
+                        <div>
+                            Setting only some of the four <code>INFISICAL_*</code> vars is treated as a
+                            misconfiguration and the app will fail fast at startup with an error naming the missing
+                            ones.
+                        </div>
                     </div>
                 </div>
-            </section> -->
+            </section>
         </div>
 
     </div>
